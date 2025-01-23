@@ -60,7 +60,10 @@ const GET_DAILY_POSTS = `
 
 const graphQLClient = new GraphQLClient(PRODUCT_HUNT_API_URL, {
   headers: {
-    authorization: `Bearer ${process.env.PRODUCT_HUNT_API_TOKEN}`,
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.PRODUCT_HUNT_API_TOKEN}`,
+    'Host': 'api.producthunt.com'
   },
 });
 
@@ -83,17 +86,24 @@ export async function getDailyPosts(): Promise<ProductHuntPost[]> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    console.log('API Token:', process.env.PRODUCT_HUNT_API_TOKEN); // 仅用于调试
+    console.log('Request variables:', { postedAfter: today.toISOString() });
+
     const response = await graphQLClient.request<GraphQLResponse<ProductHuntResponse>>(GET_DAILY_POSTS, {
       postedAfter: today.toISOString(),
     });
 
     if (response.errors) {
+      console.error('GraphQL Errors:', response.errors); // 记录详细错误
       throw new Error(response.errors[0].message);
     }
 
     return response.data?.posts.edges.map(edge => edge.node) ?? [];
   } catch (err) {
     console.error('获取 Product Hunt 日榜失败:', err);
+    if (err instanceof Error) {
+      console.error('Error details:', err.message);
+    }
     throw err instanceof Error ? err : new Error('获取 Product Hunt 日榜失败');
   }
 } 

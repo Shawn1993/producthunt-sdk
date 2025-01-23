@@ -11,6 +11,12 @@ export default function Home() {
       </p>
       <div className="flex gap-4">
         <Link 
+          href="/api/auth/producthunt" 
+          className="px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
+        >
+          登录 Product Hunt
+        </Link>
+        <Link 
           href="/test" 
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
         >
