@@ -12,19 +12,22 @@ export async function GET(request: Request) {
 
   try {
     console.log('开始请求访问令牌');
+    const requestBody = {
+      client_id: process.env.PRODUCT_HUNT_API_TOKEN,
+      client_secret: process.env.PRODUCT_HUNT_API_SECRET, 
+      code,
+      grant_type: 'authorization_code',
+      redirect_uri: process.env.PRODUCT_HUNT_REDIRECT_URI,
+    };
+    console.log('请求体:', requestBody);
+    
     const tokenResponse = await fetch('https://api.producthunt.com/v2/oauth/token', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
-      body: JSON.stringify({
-        client_id: process.env.PRODUCT_HUNT_API_TOKEN,
-        client_secret: process.env.PRODUCT_HUNT_API_SECRET,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: process.env.PRODUCT_HUNT_REDIRECT_URI,
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     const data = await tokenResponse.json();
