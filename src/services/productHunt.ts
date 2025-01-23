@@ -60,7 +60,7 @@ const GET_DAILY_POSTS = `
 `;
 
 const getGraphQLClient = async () => {
-  const token = await tokenStorage.getToken('producthunt') || process.env.PRODUCT_HUNT_API_TOKEN;
+  const token = await tokenStorage.getToken('producthunt');
   
   return new GraphQLClient(PRODUCT_HUNT_API_URL, {
     headers: {
@@ -86,21 +86,16 @@ interface GraphQLResponse<T> {
   errors?: GraphQLError[];
 }
 
-export async function getDailyPosts(): Promise<ProductHuntPost[]> {
+export async function getDailyPosts(postedAfter: string): Promise<ProductHuntPost[]> {
   try {
     const graphQLClient = await getGraphQLClient();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    console.log('API Token:', process.env.PRODUCT_HUNT_API_TOKEN); // 仅用于调试
-    console.log('Request variables:', { postedAfter: today.toISOString() });
 
     const response = await graphQLClient.request<GraphQLResponse<ProductHuntResponse>>(GET_DAILY_POSTS, {
-      postedAfter: today.toISOString(),
+      postedAfter,
     });
 
     if (response.errors) {
-      console.error('GraphQL Errors:', response.errors); // 记录详细错误
+      console.error('GraphQL Errors:', response.errors);
       throw new Error(response.errors[0].message);
     }
 
