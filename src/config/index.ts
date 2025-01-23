@@ -10,6 +10,7 @@ interface Config {
       oauthUrl: string;
       tokenUrl: string;
       serviceName: string;
+      redirectUri: string;
       scopes: string[];
     };
   };
