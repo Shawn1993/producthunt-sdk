@@ -1,4 +1,5 @@
 import { GraphQLClient } from 'graphql-request';
+import { tokenStorage } from './tokenStorage';
 
 const PRODUCT_HUNT_API_URL = 'https://api.producthunt.com/v2/api/graphql';
 
@@ -58,14 +59,18 @@ const GET_DAILY_POSTS = `
   }
 `;
 
-const graphQLClient = new GraphQLClient(PRODUCT_HUNT_API_URL, {
-  headers: {
-    'Accept': 'application/json',
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${process.env.PRODUCT_HUNT_API_TOKEN}`,
-    'Host': 'api.producthunt.com'
-  },
-});
+const getGraphQLClient = async () => {
+  const token = await tokenStorage.getToken('producthunt') || process.env.PRODUCT_HUNT_API_TOKEN;
+  
+  return new GraphQLClient(PRODUCT_HUNT_API_URL, {
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Host': 'api.producthunt.com'
+    },
+  });
+};
 
 interface GraphQLError {
   message: string;
@@ -83,6 +88,7 @@ interface GraphQLResponse<T> {
 
 export async function getDailyPosts(): Promise<ProductHuntPost[]> {
   try {
+    const graphQLClient = await getGraphQLClient();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
