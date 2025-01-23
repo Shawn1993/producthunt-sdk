@@ -4,6 +4,7 @@ api:
     graphqlUrl: https://api.producthunt.com/v2/api/graphql
     oauthUrl: https://api.producthunt.com/v2/oauth/authorize
     tokenUrl: https://api.producthunt.com/v2/oauth/token
+    redirectUri: https://producthunt-sdk.vercel.app/callback
     serviceName: producthunt
     scopes:
       - public
