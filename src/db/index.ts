@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
+import config from '@/config';
 
 const sql = neon(process.env.POSTGRES_URL!);
 export const db = drizzle(sql);
@@ -8,7 +9,7 @@ export const db = drizzle(sql);
 export async function initDB() {
   try {
     await sql`
-      CREATE TABLE IF NOT EXISTS access_tokens (
+      CREATE TABLE IF NOT EXISTS ${sql(config.database.tableName)} (
         id SERIAL PRIMARY KEY,
         service_name VARCHAR(50) NOT NULL,
         token TEXT NOT NULL,

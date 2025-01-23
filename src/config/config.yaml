@@ -1,0 +1,13 @@
+api:
+  productHunt:
+    baseUrl: https://api.producthunt.com/v2
+    graphqlUrl: https://api.producthunt.com/v2/api/graphql
+    oauthUrl: https://api.producthunt.com/v2/oauth/authorize
+    tokenUrl: https://api.producthunt.com/v2/oauth/token
+    serviceName: producthunt
+    scopes:
+      - public
+      - private
+
+database:
+  tableName: access_tokens 

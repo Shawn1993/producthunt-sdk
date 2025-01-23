@@ -1,7 +1,8 @@
 import { GraphQLClient } from 'graphql-request';
 import { tokenStorage } from './tokenStorage';
+import config from '@/config';
 
-const PRODUCT_HUNT_API_URL = 'https://api.producthunt.com/v2/api/graphql';
+const PRODUCT_HUNT_API_URL = config.api.productHunt.graphqlUrl;
 
 export interface ProductHuntPost {
   id: string;
@@ -60,7 +61,7 @@ const GET_DAILY_POSTS = `
 `;
 
 const getGraphQLClient = async () => {
-  const token = await tokenStorage.getToken('producthunt');
+  const token = await tokenStorage.getToken(config.api.productHunt.serviceName);
   
   return new GraphQLClient(PRODUCT_HUNT_API_URL, {
     headers: {
