@@ -11,18 +11,23 @@ export default function TestPage() {
 
   const fetchPosts = async (postedAfter: string) => {
     try {
+      console.log('开始获取数据, 日期:', postedAfter);
       setLoading(true);
       const res = await fetch(`/api/product-hunt/daily?postedAfter=${postedAfter}`);
       const data = await res.json();
+      console.log('获取到的数据:', data);
       setPosts(data.posts);
     } catch (err) {
+      console.error('获取数据失败:', err);
       setError(err instanceof Error ? err.message : '获取数据失败');
     } finally {
+      console.log('数据获取完成');
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log('日期变更:', date);
     fetchPosts(date);
   }, [date]);
 
@@ -35,7 +40,10 @@ export default function TestPage() {
         <input
           type="date"
           value={date}
-          onChange={(e) => setDate(e.target.value)}
+          onChange={(e) => {
+            console.log('选择新日期:', e.target.value);
+            setDate(e.target.value);
+          }}
           className="border p-2 rounded"
         />
       </div>

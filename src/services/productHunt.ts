@@ -1,8 +1,5 @@
-import { GraphQLClient } from 'graphql-request';
 import { tokenStorage } from './tokenStorage';
 import config from '@/config';
-
-const PRODUCT_HUNT_API_URL = config.api.productHunt.graphqlUrl;
 
 export interface ProductHuntPost {
   id: string;
@@ -25,11 +22,35 @@ export interface ProductHuntPost {
 }
 
 export interface ProductHuntResponse {
+  data?: {
+    posts: {
+      edges: Array<{
+        node: ProductHuntPost;
+      }>;
+    };
+  };
+  errors?: Array<{
+    message: string;
+    locations?: Array<{
+      line: number;
+      column: number;
+    }>;
+    path?: string[];
+  }>;
+}
+
+export interface ProductHuntCollection {
+  id: string;
+  name: string;
+  description: string;
   posts: {
     edges: Array<{
       node: ProductHuntPost;
     }>;
   };
+  coverImage: string;
+  followersCount: number;
+  url: string;
 }
 
 const GET_DAILY_POSTS = `
@@ -60,52 +81,103 @@ const GET_DAILY_POSTS = `
   }
 `;
 
-const getGraphQLClient = async () => {
-  const token = await tokenStorage.getToken(config.api.productHunt.serviceName);
-  
-  return new GraphQLClient(PRODUCT_HUNT_API_URL, {
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-      'Host': 'api.producthunt.com'
-    },
-  });
-};
-
-interface GraphQLError {
-  message: string;
-  locations?: Array<{
-    line: number;
-    column: number;
-  }>;
-  path?: string[];
-}
-
-interface GraphQLResponse<T> {
-  data?: T;
-  errors?: GraphQLError[];
-}
+const GET_COLLECTIONS = `
+  query GetCollections($first: Int, $featured: Boolean) {
+    collections(first: $first, featured: $featured, order: FOLLOWERS_COUNT) {
+      edges {
+        node {
+          id
+          name
+          description
+          coverImage
+          followersCount
+          url
+          posts(first: 3) {
+            edges {
+              node {
+                id
+                name
+                tagline
+                thumbnail {
+                  url
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
 
 export async function getDailyPosts(postedAfter: string): Promise<ProductHuntPost[]> {
+  console.log('开始获取 Product Hunt 日榜数据, 日期:', postedAfter);
   try {
-    const graphQLClient = await getGraphQLClient();
+    const token = await tokenStorage.getToken(config.api.productHunt.serviceName);
+    console.log('成功获取 token');
 
-    const response = await graphQLClient.request<GraphQLResponse<ProductHuntResponse>>(GET_DAILY_POSTS, {
-      postedAfter,
+    const response = await fetch(config.api.productHunt.graphqlUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query: GET_DAILY_POSTS,
+        variables: { postedAfter },
+      }),
     });
 
-    if (response.errors) {
-      console.error('GraphQL Errors:', response.errors);
-      throw new Error(response.errors[0].message);
+    const data: ProductHuntResponse = await response.json();
+    console.log('获取到响应数据');
+
+    if (data.errors) {
+      console.error('GraphQL 请求返回错误:', data.errors);
+      throw new Error(data.errors[0].message);
     }
 
-    return response.data?.posts.edges.map(edge => edge.node) ?? [];
+    const posts = data.data?.posts.edges.map(edge => edge.node) ?? [];
+    console.log(`成功获取 ${posts.length} 条数据`);
+    return posts;
   } catch (err) {
     console.error('获取 Product Hunt 日榜失败:', err);
     if (err instanceof Error) {
-      console.error('Error details:', err.message);
+      console.error('错误详情:', err.message);
     }
     throw err instanceof Error ? err : new Error('获取 Product Hunt 日榜失败');
+  }
+}
+
+export async function getCollections(featured: boolean = true): Promise<ProductHuntCollection[]> {
+  try {
+    const token = await tokenStorage.getToken(config.api.productHunt.serviceName);
+    
+    const response = await fetch(config.api.productHunt.graphqlUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        query: GET_COLLECTIONS,
+        variables: { 
+          first: 10,
+          featured 
+        },
+      }),
+    });
+
+    const data = await response.json();
+    
+    if (data.errors) {
+      throw new Error(data.errors[0].message);
+    }
+
+    return data.data.collections.edges.map((edge: any) => edge.node);
+  } catch (err) {
+    console.error('获取 Collections 失败:', err);
+    throw err;
   }
 } 
