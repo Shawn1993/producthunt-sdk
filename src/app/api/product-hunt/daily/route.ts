@@ -5,9 +5,10 @@ export async function GET() {
   try {
     const posts = await getDailyPosts();
     return NextResponse.json({ posts });
-  } catch (error) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : '获取 Product Hunt 日榜失败';
     return NextResponse.json(
-      { error: '获取 Product Hunt 日榜失败' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

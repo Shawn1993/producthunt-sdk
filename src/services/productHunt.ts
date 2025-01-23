@@ -64,18 +64,36 @@ const graphQLClient = new GraphQLClient(PRODUCT_HUNT_API_URL, {
   },
 });
 
+interface GraphQLError {
+  message: string;
+  locations?: Array<{
+    line: number;
+    column: number;
+  }>;
+  path?: string[];
+}
+
+interface GraphQLResponse<T> {
+  data?: T;
+  errors?: GraphQLError[];
+}
+
 export async function getDailyPosts(): Promise<ProductHuntPost[]> {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const data = await graphQLClient.request<ProductHuntResponse>(GET_DAILY_POSTS, {
+    const response = await graphQLClient.request<GraphQLResponse<ProductHuntResponse>>(GET_DAILY_POSTS, {
       postedAfter: today.toISOString(),
     });
 
-    return data.posts.edges.map(edge => edge.node);
-  } catch (error) {
-    console.error('获取 Product Hunt 日榜失败:', error);
-    throw error;
+    if (response.errors) {
+      throw new Error(response.errors[0].message);
+    }
+
+    return response.data?.posts.edges.map(edge => edge.node) ?? [];
+  } catch (err) {
+    console.error('获取 Product Hunt 日榜失败:', err);
+    throw err instanceof Error ? err : new Error('获取 Product Hunt 日榜失败');
   }
 } 

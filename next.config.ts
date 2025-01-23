@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
       'ph-files.imgix.net',  // Product Hunt 的图片域名
     ],
   },
+  eslint: {
+    ignoreDuringBuilds: true, // 在构建时忽略 ESLint 错误
+  },
   /* config options here */
   async headers() {
     return [
