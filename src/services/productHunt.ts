@@ -8,67 +8,67 @@ import type {
 } from '@/types/product-hunt';
 import config from '@/config';
 import { tokenStorage } from '@/services/tokenStorage';
+import { TokenStorage } from '@/services/tokenStorage';
 
-class ProductHuntService {
-  private async graphqlRequest<T>(query: string, variables: Record<string, any>): Promise<T> {
-    try {
-      // 使用正确的方法名 getToken，并传入服务名称
-      const accessToken = await tokenStorage.getToken(config.api.productHunt.serviceName);
-      
-      if (!accessToken) {
-        throw new Error('No access token available. Please authenticate first.');
-      }
+export class ProductHuntService {
+  private readonly apiUrl: string;
+  private readonly serviceName: string;
 
-      console.log('[ProductHunt] GraphQL Request:', {
-        url: config.api.productHunt.graphqlUrl,
-        variables,
-        hasToken: !!accessToken,
-      });
+  constructor(private readonly tokenStorage: TokenStorage) {
+    this.apiUrl = config.api.productHunt.graphqlUrl;
+    this.serviceName = config.api.productHunt.serviceName;
+  }
 
-      const response = await fetch(config.api.productHunt.graphqlUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`, // accessToken 直接就是字符串
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({
-          query,
-          variables,
-        }),
-        cache: 'no-store', // 禁用缓存以确保获取最新数据
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          // 使用正确的方法名 clearToken
-          await tokenStorage.clearToken(config.api.productHunt.serviceName);
-          throw new Error('Access token expired. Please authenticate again.');
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.errors) {
-        console.error('[ProductHunt] GraphQL Errors:', JSON.stringify(data.errors, null, 2));
-        throw new Error(
-          Array.isArray(data.errors) 
-            ? data.errors.map((e: { message: string }) => e.message).join(', ')
-            : 'Unknown GraphQL error'
-        );
-      }
-
-      if (!data.data) {
-        console.error('[ProductHunt] No data in response:', data);
-        throw new Error('No data returned from GraphQL API');
-      }
-
-      return data.data;
-    } catch (error) {
-      console.error('[ProductHunt] Request failed:', error);
-      throw error;
+  public async graphqlRequest<T>(query: string, variables: Record<string, any>): Promise<T> {
+    const token = await this.tokenStorage.getToken(this.serviceName);
+    if (!token) {
+      throw new Error('No access token found');
     }
+
+    console.log('[ProductHunt] GraphQL Request:', {
+      url: this.apiUrl,
+      variables,
+      hasToken: !!token,
+    });
+
+    const response = await fetch(this.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+      cache: 'no-store', // 禁用缓存以确保获取最新数据
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        await this.tokenStorage.clearToken(this.serviceName);
+        throw new Error('Access token expired');
+      }
+      throw new Error(`GraphQL request failed: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    if (data.errors) {
+      console.error('[ProductHunt] GraphQL Errors:', JSON.stringify(data.errors, null, 2));
+      throw new Error(
+        Array.isArray(data.errors) 
+          ? data.errors.map((e: { message: string }) => e.message).join(', ')
+          : 'Unknown GraphQL error'
+      );
+    }
+
+    if (!data.data) {
+      console.error('[ProductHunt] No data in response:', data);
+      throw new Error('No data returned from GraphQL API');
+    }
+
+    return data.data;
   }
 
   async getCollections(params: CollectionsQueryParams) {
@@ -117,4 +117,4 @@ class ProductHuntService {
   }
 }
 
-export const productHuntService = new ProductHuntService(); 
+export const productHuntService = new ProductHuntService(tokenStorage); 

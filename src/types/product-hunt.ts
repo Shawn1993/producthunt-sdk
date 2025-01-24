@@ -3,6 +3,7 @@ export interface ProductHuntUser {
   name: string;
   username: string;
   profileImage: string;
+  headline?: string;
 }
 
 export interface ProductHuntMedia {
@@ -20,6 +21,15 @@ export interface ProductHuntTopic {
   id: string;
   name: string;
   slug: string;
+}
+
+export interface ProductHuntComment {
+  id: string;
+  body: string;
+  createdAt: string;
+  votesCount: number;
+  isVoted: boolean;
+  user: ProductHuntUser;
 }
 
 export interface ProductHuntPost {
@@ -46,6 +56,11 @@ export interface ProductHuntPost {
   topics: {
     edges: {
       node: ProductHuntTopic;
+    }[];
+  };
+  comments: {
+    edges: {
+      node: ProductHuntComment;
     }[];
   };
 }
@@ -77,4 +92,20 @@ export interface PostsQueryParams extends PaginationParams {
 
 export interface CollectionsQueryParams extends PaginationParams {
   featured?: boolean;
+}
+
+export interface GetPostCommentsResponse {
+  post: {
+    id: string;
+    comments: {
+      edges: Array<{
+        node: ProductHuntComment;
+        cursor: string;
+      }>;
+      pageInfo: {
+        endCursor: string;
+        hasNextPage: boolean;
+      };
+    };
+  };
 } 

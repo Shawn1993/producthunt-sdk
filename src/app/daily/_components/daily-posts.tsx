@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { ExternalLink, ThumbsUp, MessageSquare, Star, Calendar, Hash } from 'lucide-react';
+import { ExternalLink, ThumbsUp, MessageSquare, Star, Calendar, Hash, MessageCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -173,17 +173,18 @@ export function DailyPosts() {
                 
                 <p className="text-sm text-muted-foreground line-clamp-3">{post.description}</p>
 
-                <div className="flex flex-wrap gap-2">
-                  {post.makers.map((maker) => (
-                    <div key={maker.id} className="flex items-center gap-2">
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={maker.profileImage} alt={maker.name} />
-                        <AvatarFallback>{maker.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm">{maker.name}</span>
-                    </div>
-                  ))}
-                </div>
+                {post.commentsCount > 0 && (
+                  <Button variant="ghost" size="sm" asChild className="w-full">
+                    <Link 
+                      href={`${post.url}#comments`}
+                      target="_blank"
+                      className="flex items-center justify-center gap-2"
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      查看 {post.commentsCount} 条评论
+                    </Link>
+                  </Button>
+                )}
               </CardContent>
 
               <CardFooter className="grid grid-cols-2 gap-2 pt-4 border-t text-sm">

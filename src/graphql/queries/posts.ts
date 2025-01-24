@@ -18,31 +18,10 @@ export const GET_POSTS = `
           featuredAt
           isCollected
           isVoted
-          makers {
-            id
-            name
-            username
-            profileImage
-          }
-          media {
-            url
-            videoUrl
-            type
-          }
           thumbnail {
             url
             videoUrl
             type
-          }
-          productLinks {
-            url
-            type
-          }
-          user {
-            id
-            name
-            username
-            profileImage
           }
           topics {
             edges {

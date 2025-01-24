@@ -1,0 +1,35 @@
+name: Daily Product Hunt Scraper
+
+on:
+  schedule:
+    # 每天凌晨 2 点运行（UTC 时间，即北京时间 10 点）
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  fetch-data:
+    runs-on: ubuntu-latest
+    
+    env:
+      POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+      PRODUCT_HUNT_API_TOKEN: ${{ secrets.PRODUCT_HUNT_API_TOKEN }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        
+      - name: Fetch posts and comments
+        run: pnpm tsx scripts/fetch-posts.ts 
