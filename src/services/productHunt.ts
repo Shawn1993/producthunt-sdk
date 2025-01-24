@@ -1,183 +1,120 @@
-import { tokenStorage } from './tokenStorage';
+import { GET_POSTS } from '@/graphql/queries/posts';
+import { GET_COLLECTIONS } from '@/graphql/queries/collections';
+import type { 
+  ProductHuntPost, 
+  ProductHuntCollection,
+  PostsQueryParams,
+  CollectionsQueryParams 
+} from '@/types/product-hunt';
 import config from '@/config';
+import { tokenStorage } from '@/services/tokenStorage';
 
-export interface ProductHuntPost {
-  id: string;
-  name: string;
-  tagline: string;
-  description: string;
-  thumbnail: {
-    url: string;
-  };
-  votesCount: number;
-  website: string;
-  slug: string;
-  topics: {
-    edges: Array<{
-      node: {
-        name: string;
-      };
-    }>;
-  };
-}
-
-export interface ProductHuntResponse {
-  data?: {
-    posts: {
-      edges: Array<{
-        node: ProductHuntPost;
-      }>;
-    };
-  };
-  errors?: Array<{
-    message: string;
-    locations?: Array<{
-      line: number;
-      column: number;
-    }>;
-    path?: string[];
-  }>;
-}
-
-export interface ProductHuntCollection {
-  id: string;
-  name: string;
-  description: string;
-  posts: {
-    edges: Array<{
-      node: ProductHuntPost;
-    }>;
-  };
-  coverImage: string;
-  followersCount: number;
-  url: string;
-}
-
-const GET_DAILY_POSTS = `
-  query GetDailyPosts($postedAfter: DateTime) {
-    posts(first: 10, postedAfter: $postedAfter, order: RANKING) {
-      edges {
-        node {
-          id
-          name
-          tagline
-          description
-          thumbnail {
-            url
-          }
-          votesCount
-          website
-          slug
-          topics {
-            edges {
-              node {
-                name
-              }
-            }
-          }
-        }
+class ProductHuntService {
+  private async graphqlRequest<T>(query: string, variables: Record<string, any>): Promise<T> {
+    try {
+      // 使用正确的方法名 getToken，并传入服务名称
+      const accessToken = await tokenStorage.getToken(config.api.productHunt.serviceName);
+      
+      if (!accessToken) {
+        throw new Error('No access token available. Please authenticate first.');
       }
-    }
-  }
-`;
 
-const GET_COLLECTIONS = `
-  query GetCollections($first: Int, $featured: Boolean) {
-    collections(first: $first, featured: $featured, order: FOLLOWERS_COUNT) {
-      edges {
-        node {
-          id
-          name
-          description
-          coverImage
-          followersCount
-          url
-          posts(first: 3) {
-            edges {
-              node {
-                id
-                name
-                tagline
-                thumbnail {
-                  url
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
+      console.log('[ProductHunt] GraphQL Request:', {
+        url: config.api.productHunt.graphqlUrl,
+        variables,
+        hasToken: !!accessToken,
+      });
 
-export async function getDailyPosts(postedAfter: string): Promise<ProductHuntPost[]> {
-  console.log('开始获取 Product Hunt 日榜数据, 日期:', postedAfter);
-  try {
-    const token = await tokenStorage.getToken(config.api.productHunt.serviceName);
-    console.log('成功获取 token');
-
-    const response = await fetch(config.api.productHunt.graphqlUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        query: GET_DAILY_POSTS,
-        variables: { postedAfter },
-      }),
-    });
-
-    const data: ProductHuntResponse = await response.json();
-    console.log('获取到响应数据');
-
-    if (data.errors) {
-      console.error('GraphQL 请求返回错误:', data.errors);
-      throw new Error(data.errors[0].message);
-    }
-
-    const posts = data.data?.posts.edges.map(edge => edge.node) ?? [];
-    console.log(`成功获取 ${posts.length} 条数据`);
-    return posts;
-  } catch (err) {
-    console.error('获取 Product Hunt 日榜失败:', err);
-    if (err instanceof Error) {
-      console.error('错误详情:', err.message);
-    }
-    throw err instanceof Error ? err : new Error('获取 Product Hunt 日榜失败');
-  }
-}
-
-export async function getCollections(featured: boolean = true): Promise<ProductHuntCollection[]> {
-  try {
-    const token = await tokenStorage.getToken(config.api.productHunt.serviceName);
-    
-    const response = await fetch(config.api.productHunt.graphqlUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        query: GET_COLLECTIONS,
-        variables: { 
-          first: 10,
-          featured 
+      const response = await fetch(config.api.productHunt.graphqlUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`, // accessToken 直接就是字符串
+          'Accept': 'application/json',
         },
-      }),
-    });
+        body: JSON.stringify({
+          query,
+          variables,
+        }),
+        cache: 'no-store', // 禁用缓存以确保获取最新数据
+      });
 
-    const data = await response.json();
-    
-    if (data.errors) {
-      throw new Error(data.errors[0].message);
+      if (!response.ok) {
+        if (response.status === 401) {
+          // 使用正确的方法名 clearToken
+          await tokenStorage.clearToken(config.api.productHunt.serviceName);
+          throw new Error('Access token expired. Please authenticate again.');
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.errors) {
+        console.error('[ProductHunt] GraphQL Errors:', JSON.stringify(data.errors, null, 2));
+        throw new Error(
+          Array.isArray(data.errors) 
+            ? data.errors.map((e: { message: string }) => e.message).join(', ')
+            : 'Unknown GraphQL error'
+        );
+      }
+
+      if (!data.data) {
+        console.error('[ProductHunt] No data in response:', data);
+        throw new Error('No data returned from GraphQL API');
+      }
+
+      return data.data;
+    } catch (error) {
+      console.error('[ProductHunt] Request failed:', error);
+      throw error;
     }
-
-    return data.data.collections.edges.map((edge: any) => edge.node);
-  } catch (err) {
-    console.error('获取 Collections 失败:', err);
-    throw err;
   }
-} 
+
+  async getCollections(params: CollectionsQueryParams) {
+    try {
+      console.log('[ProductHunt] Getting collections with params:', params);
+      const { first = 20, after, featured } = params;
+      const data = await this.graphqlRequest<{ collections: any }>(GET_COLLECTIONS, {
+        first,
+        after,
+        featured,
+      });
+      
+      if (!data.collections) {
+        throw new Error('No collections data returned');
+      }
+
+      console.log('[ProductHunt] Retrieved collections count:', data.collections?.edges?.length || 0);
+      return data.collections;
+    } catch (error) {
+      console.error('[ProductHunt] Failed to get collections:', error);
+      throw error;
+    }
+  }
+
+  async getPosts(params: PostsQueryParams) {
+    try {
+      console.log('[ProductHunt] Getting posts with params:', params);
+      const { first = 20, after, postedBefore, postedAfter } = params;
+      const data = await this.graphqlRequest<{ posts: any }>(GET_POSTS, {
+        first,
+        after,
+        postedBefore,
+        postedAfter,
+      });
+
+      if (!data.posts) {
+        throw new Error('No posts data returned');
+      }
+
+      console.log('[ProductHunt] Retrieved posts count:', data.posts?.edges?.length || 0);
+      return data.posts;
+    } catch (error) {
+      console.error('[ProductHunt] Failed to get posts:', error);
+      throw error;
+    }
+  }
+}
+
+export const productHuntService = new ProductHuntService(); 

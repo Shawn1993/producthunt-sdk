@@ -28,6 +28,12 @@ export default function RootLayout({
             </div>
             <nav className="flex items-center space-x-6 text-sm font-medium">
               <a
+                href="/daily"
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+              >
+                每日精选
+              </a>
+              <a
                 href="/collections"
                 className="transition-colors hover:text-foreground/80 text-foreground/60"
               >

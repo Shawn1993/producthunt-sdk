@@ -11,11 +11,20 @@ import { ExternalLink, Users, Package } from "lucide-react";
 import Link from 'next/link';
 
 interface CollectionsListProps {
-  initialCollections: ProductHuntCollection[];
+  initialCollections: {
+    edges: {
+      node: ProductHuntCollection;
+      cursor: string;
+    }[];
+    pageInfo: {
+      endCursor: string;
+      hasNextPage: boolean;
+    };
+  };
 }
 
 export function CollectionsList({ initialCollections }: CollectionsListProps) {
-  const [collections, setCollections] = useState(initialCollections);
+  const [collections, setCollections] = useState(initialCollections.edges);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [featured, setFeatured] = useState(true);
@@ -25,7 +34,7 @@ export function CollectionsList({ initialCollections }: CollectionsListProps) {
       setLoading(true);
       const response = await fetch(`/api/product-hunt/collections?featured=${isFeatured}`);
       const data = await response.json();
-      setCollections(data.collections);
+      setCollections(data.collections.edges);
     } catch (err) {
       setError(err instanceof Error ? err.message : '获取数据失败');
     } finally {
@@ -86,18 +95,20 @@ export function CollectionsList({ initialCollections }: CollectionsListProps) {
               </Card>
             ))
           ) : (
-            collections.map((collection) => (
+            collections.map(({ node: collection }) => (
               <Card key={collection.id} className="group overflow-hidden hover:shadow-lg transition-all duration-300 border-muted">
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between group">
-                    <span className="line-clamp-1 text-lg font-semibold">{collection.name}</span>
-                    <Link 
-                      href={collection.url} 
-                      target="_blank"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                    >
-                      <ExternalLink className="h-5 w-5 text-muted-foreground hover:text-primary" />
-                    </Link>
+                    <span className="line-clamp-1 text-lg font-semibold">
+                      <Link 
+                        href={collection.url}
+                        target="_blank"
+                        className="hover:text-primary transition-colors flex items-center gap-2"
+                      >
+                        {collection.name}
+                        <ExternalLink className="h-5 w-5 text-muted-foreground hover:text-primary" />
+                      </Link>
+                    </span>
                   </CardTitle>
                   <CardDescription className="line-clamp-2 text-sm text-muted-foreground">
                     {collection.description}
