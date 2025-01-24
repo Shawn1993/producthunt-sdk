@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ProductHuntCollection } from '@/services/productHunt';
+import { useState, useEffect } from 'react';
+import { ProductHuntCollection } from '@/types/product-hunt';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -10,22 +10,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ExternalLink, Users, Package } from "lucide-react";
 import Link from 'next/link';
 
-interface CollectionsListProps {
-  initialCollections: {
-    edges: {
-      node: ProductHuntCollection;
-      cursor: string;
-    }[];
-    pageInfo: {
-      endCursor: string;
-      hasNextPage: boolean;
-    };
-  };
-}
-
-export function CollectionsList({ initialCollections }: CollectionsListProps) {
-  const [collections, setCollections] = useState(initialCollections.edges);
-  const [loading, setLoading] = useState(false);
+export function CollectionsList() {
+  const [collections, setCollections] = useState<{
+    node: ProductHuntCollection;
+    cursor: string;
+  }[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [featured, setFeatured] = useState(true);
 
@@ -34,13 +24,17 @@ export function CollectionsList({ initialCollections }: CollectionsListProps) {
       setLoading(true);
       const response = await fetch(`/api/product-hunt/collections?featured=${isFeatured}`);
       const data = await response.json();
-      setCollections(data.collections.edges);
+      setCollections(data.edges);
     } catch (err) {
       setError(err instanceof Error ? err.message : '获取数据失败');
     } finally {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    fetchCollections(featured);
+  }, [featured]);
 
   if (error) {
     return (
@@ -59,7 +53,6 @@ export function CollectionsList({ initialCollections }: CollectionsListProps) {
           className="w-1/2 rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
           onClick={() => {
             setFeatured(true);
-            fetchCollections(true);
           }}
         >
           精选合集
@@ -69,7 +62,6 @@ export function CollectionsList({ initialCollections }: CollectionsListProps) {
           className="w-1/2 rounded-md px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
           onClick={() => {
             setFeatured(false);
-            fetchCollections(false);
           }}
         >
           全部合集
