@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS posts (
 CREATE TABLE IF NOT EXISTS comments (
   id VARCHAR(50) PRIMARY KEY,
   post_id VARCHAR(50) NOT NULL REFERENCES posts(id),
+  parent_id VARCHAR(50) REFERENCES comments(id),
   body TEXT NOT NULL,
   votes_count INTEGER DEFAULT 0,
   is_voted BOOLEAN DEFAULT FALSE,
@@ -40,5 +41,7 @@ CREATE TABLE IF NOT EXISTS comments (
   user_profile_image TEXT,
   raw_data JSONB,
   fetched_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  path ltree NOT NULL DEFAULT '',
+  depth INTEGER GENERATED ALWAYS AS (nlevel(path)) STORED,
   UNIQUE(id, post_id)
 ); 

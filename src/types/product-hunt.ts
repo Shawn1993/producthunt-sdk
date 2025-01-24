@@ -29,7 +29,14 @@ export interface ProductHuntComment {
   createdAt: string;
   votesCount: number;
   isVoted: boolean;
-  user: ProductHuntUser;
+  parentId?: string;
+  user: {
+    id: string;
+    name: string;
+    username: string;
+    profileImage: string;
+    headline: string;
+  };
 }
 
 export interface ProductHuntPost {
@@ -98,6 +105,22 @@ export interface GetPostCommentsResponse {
   post: {
     id: string;
     comments: {
+      edges: Array<{
+        node: ProductHuntComment;
+        cursor: string;
+      }>;
+      pageInfo: {
+        endCursor: string;
+        hasNextPage: boolean;
+      };
+    };
+  };
+}
+
+export interface GetCommentRepliesResponse {
+  comment: {
+    id: string;
+    replies: {
       edges: Array<{
         node: ProductHuntComment;
         cursor: string;

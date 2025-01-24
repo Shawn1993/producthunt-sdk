@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "init-db": "tsx scripts/init-db.ts",
+    "fetch-posts": "tsx scripts/fetch-posts.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

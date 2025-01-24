@@ -50,19 +50,28 @@ export function DailyPosts() {
 
     try {
       setLoading(true);
-      // 直接使用日期字符串，避免时区转换
-      const start = dateRange.from.toISOString().split('T')[0] + 'T00:00:00Z';
-      const end = dateRange.to.toISOString().split('T')[0] + 'T23:59:59Z';
+      // 使用 UTC 时间来确保获取完整的一天
+      const start = new Date(dateRange.from);
+      start.setUTCHours(0, 0, 0, 0);
+      
+      const end = new Date(dateRange.to);
+      end.setUTCHours(23, 59, 59, 999);
 
       const response = await fetch(
         `/api/product-hunt/posts?` + 
-        `postedAfter=${start}&` +
-        `postedBefore=${end}&` +
+        `postedAfter=${start.toISOString()}&` +
+        `postedBefore=${end.toISOString()}&` +
+        `featured=true&` +
         `first=${parseInt(limit) || 10}`
       );
       
       const data = await response.json();
-      setPosts(data.edges);
+      if (!data.edges || data.edges.length === 0) {
+        setError('该日期范围内没有精选帖子');
+        setPosts([]);
+      } else {
+        setPosts(data.edges);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : '获取数据失败');
     } finally {
@@ -176,7 +185,7 @@ export function DailyPosts() {
                 {post.commentsCount > 0 && (
                   <Button variant="ghost" size="sm" asChild className="w-full">
                     <Link 
-                      href={`${post.url}#comments`}
+                      href={`/posts/${post.id}/comments`}
                       target="_blank"
                       className="flex items-center justify-center gap-2"
                     >

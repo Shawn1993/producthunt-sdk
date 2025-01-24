@@ -8,6 +8,7 @@ async function batchInsertComments(comments: ProductHuntComment[], postId: strin
     const values = comments.map(comment => ({
       id: comment.id,
       post_id: postId,
+      parent_id: comment.parentComment?.id || null,
       body: comment.body,
       votes_count: comment.votesCount,
       is_voted: comment.isVoted,
@@ -27,6 +28,7 @@ async function batchInsertComments(comments: ProductHuntComment[], postId: strin
     
     const flatValues = values.flatMap(obj => Object.values(obj));
     
+    // 先插入评论
     await sql.query(`
       INSERT INTO comments (${columns.join(', ')})
       VALUES ${placeholders}
@@ -36,6 +38,27 @@ async function batchInsertComments(comments: ProductHuntComment[], postId: strin
         raw_data = EXCLUDED.raw_data,
         fetched_at = CURRENT_TIMESTAMP
     `, flatValues);
+
+    // 更新评论的路径
+    for (const comment of values) {
+      if (comment.parent_id) {
+        await sql.query(`
+          UPDATE comments
+          SET path = (
+            SELECT path || id::text::ltree
+            FROM comments
+            WHERE id = $1 AND post_id = $2
+          )
+          WHERE id = $3 AND post_id = $2
+        `, [comment.parent_id, postId, comment.id]);
+      } else {
+        await sql.query(`
+          UPDATE comments
+          SET path = id::text::ltree
+          WHERE id = $1 AND post_id = $2 AND path = ''
+        `, [comment.id, postId]);
+      }
+    }
 
     console.log(`批量保存 ${comments.length} 条评论完成`);
   } catch (error) {
