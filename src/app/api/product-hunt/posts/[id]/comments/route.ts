@@ -1,18 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { productHuntService } from '@/services/productHunt';
 
-type Props = {
-  params: {
-    id: string;
-  };
-};
-
 export async function GET(
-  _req: NextRequest,
-  { params }: Props
+    request: NextRequest
 ) {
   try {
-    const comments = await productHuntService.getPostComments(params.id);
+    const searchParams = request.nextUrl.searchParams;
+    if (!searchParams.get('id')) {
+      return new NextResponse('帖子 ID 不能为空', { status: 400 });
+    }
+    const comments = await productHuntService.getPostComments(searchParams.get('id')!);
     return NextResponse.json(comments);
   } catch (error) {
     console.error('获取评论失败:', error);
